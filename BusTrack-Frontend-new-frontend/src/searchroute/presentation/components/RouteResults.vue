@@ -1,0 +1,487 @@
+<script setup>
+import { useSavedRoutesStore } from '@/stores/useSavedRoutesStore'
+import { useNotificationsStore } from '@/stores/useNotificationsStore'
+// import { useTravelHistoryStore } from '@/stores/useTravelHistoryStore'
+import {SearchRouteApi} from '@/searchroute/infrastructure/route-api.js'
+import { useI18n } from 'vue-i18n'
+import { ref, onMounted, computed } from 'vue'
+import {useRouter} from "vue-router";
+
+const { t } = useI18n()
+const savedRoutesStore = useSavedRoutesStore()
+const notificationsStore = useNotificationsStore()
+// const travelHistoryStore = useTravelHistoryStore()
+// const availableRoutes = ref([])
+// const isLoadingRoutes = ref(false)
+// const selectedCompanyId = ref(1)
+// const availableCompanies = ref([])
+// const isLoadingCompanies = ref(false)
+
+const routeApi = new SearchRouteApi()
+
+const props = defineProps({
+  origin: String,
+  destination: String,
+  routeData: Object
+})
+
+const emit = defineEmits(['save-route'])
+
+const isSaving = ref(false)
+const saveMessage = ref('')
+const isSaveSuccess = computed(() => saveMessage.value.includes('guardada'))
+const matchingRoutes = computed(() => Array.isArray(props.routeData?.routes) ? props.routeData.routes : [])
+
+const getRouteId = () => {
+  return props.routeData?.id ?? props.routeData?.Id ?? props.routeData?.routeId ?? null
+}
+
+const saveRoute = async () => {
+  isSaving.value = true
+  saveMessage.value = ''
+
+  const payload = {
+    name: props.routeData?.name ?? `${props.origin} → ${props.destination}`,
+    companyId: 1,
+    estimatedTime: props.routeData?.estimatedTime ?? 0,
+    frequency: props.routeData?.frequency ?? 0,
+    waypoints: extractWaypointsForBackend(props.routeData)
+  }
+
+  try {
+    const response = await routeApi.createRoute(payload)
+    saveMessage.value = '✓ Ruta creada en la base de datos'
+    emit('save-route', response.data)
+
+    // Notificación al crear la ruta (aislada en su propio try)
+    try {
+      await notificationsStore.addNotification({
+        type: 'success',
+        message: `Ruta creada: ${props.origin} → ${props.destination}`,
+        priority: 'low',
+        icon: '⭐'
+      })
+    } catch (notifError) {
+      console.warn('Ruta creada, pero no se pudo crear la notificación:', notifError?.message)
+    }
+  } catch (error) {
+    console.error('No se pudo crear la ruta:', error?.response?.data || error.message)
+    saveMessage.value = '✗ Error al crear la ruta'
+  } finally {
+    setTimeout(() => {
+      isSaving.value = false
+      saveMessage.value = ''
+    }, 3000)
+  }
+  // const routeToSave = {
+  //   origin: props.origin,
+  //   destination: props.destination,
+  //   routeId: getRouteId(),
+  //   routeData: props.routeData
+  // }
+  //
+  // const success = await savedRoutesStore.addRoute(routeToSave)
+  //
+  // if (success) {
+  //   await notificationsStore.addNotification({
+  //     type: 'success',
+  //     message: `Ruta guardada: ${props.origin} → ${props.destination}`,
+  //     priority: 'low',
+  //     icon: '⭐'
+  //   })
+  //
+  //   saveMessage.value = '✓ Ruta guardada en favoritos'
+  //   emit('save-route', routeToSave)
+  // } else {
+  //   saveMessage.value = 'Esta ruta ya está en favoritos'
+  //   notificationsStore.addNotification({
+  //     type: 'info',
+  //     message: `La ruta ${props.origin} → ${props.destination} ya está guardada`,
+  //     priority: 'low',
+  //     icon: 'ℹ️'
+  //   })
+  // }
+  //
+  // setTimeout(() => {
+  //   isSaving.value = false
+  //   saveMessage.value = ''
+  // }, 3000)
+}
+
+const extractWaypointsForBackend = (routeData) => {
+  const waypoints = routeData?.Waypoints ?? routeData?.waypoints ?? []
+  if (!Array.isArray(waypoints)) return []
+  return waypoints.map((wp, index) => ({
+    name: wp.Name ?? wp.name ?? `Punto ${index + 1}`,
+    latitude: wp.latitude ?? wp.Latitude ?? 0,
+    longitude: wp.longitude ?? wp.Longitude ?? 0,
+    order: wp.Order ?? wp.order ?? index + 1
+  }))
+}
+
+const openInGoogleMaps = () => {
+  const origin = encodeURIComponent(props.origin)
+  const destination = encodeURIComponent(props.destination)
+  const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`
+  window.open(url, '_blank')
+}
+
+// onMounted(async () => {
+//   // Agregar al historial de viajes automáticamente
+//   // void travelHistoryStore.addTrip({
+//   //   origin: props.origin,
+//   //   destination: props.destination,
+//   //   routeId: getRouteId(),
+//   //   routeData: props.routeData,
+//   //   steps: extractStepsFromRouteData(props.routeData),
+//   // })
+//   try {
+//     isLoadingCompanies.value = true
+//     // Llamada a tu API para obtener compañías
+//     const response = await routeApi.getCompanies()
+//     availableCompanies.value = response.data
+//
+//     // Si hay compañías, selecciona la primera por defecto
+//     if (availableCompanies.value.length > 0) {
+//       selectedCompanyId.value = availableCompanies.value[0].id
+//     }
+//   } catch (error) {
+//     console.error('Error al cargar compañías:', error)
+//   } finally {
+//     isLoadingCompanies.value = false
+//   }
+// })
+
+const extractStepsFromRouteData = (routeData) => {
+  const waypoints = routeData?.Waypoints ?? routeData?.waypoints ?? []
+
+  if (Array.isArray(waypoints) && waypoints.length > 0) {
+    return waypoints.map((waypoint, index) => ({
+      type: 'stop',
+      name: waypoint.Name ?? waypoint.name ?? `Punto ${index + 1}`,
+      mode: 'stop',
+      order: waypoint.Order ?? waypoint.order ?? index + 1
+    }))
+  }
+
+  return routeData?.steps ?? []
+}
+</script>
+
+<template>
+  <div class="route-results">
+    <div class="results-header">
+      <h2>{{ $t('routeResults.title') }}</h2>
+    </div>
+
+    <div class="address-card">
+      <div class="address-item origin">
+        <div class="label">
+          <span class="marker">A</span>
+          <span class="text">{{ $t('routeResults.origin') }}</span>
+        </div>
+        <div class="address-content">
+          <p>{{ origin }}</p>
+        </div>
+      </div>
+
+      <div class="arrow-separator">
+        ↓
+      </div>
+
+      <div class="address-item destination">
+        <div class="label">
+          <span class="marker">B</span>
+          <span class="text">{{ $t('routeResults.destination') }}</span>
+        </div>
+        <div class="address-content">
+          <p>{{ destination }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="matchingRoutes.length" class="routes-summary">
+      <h3>{{ $t('routeResults.foundRoutes') || 'Rutas encontradas' }}</h3>
+      <div class="routes-grid">
+        <article v-for="route in matchingRoutes" :key="route.id" class="route-chip">
+          <strong>{{ route.name || route.id }}</strong>
+          <span v-if="route.estimatedTime">{{ route.estimatedTime }}</span>
+          <small v-if="route.frequency">{{ route.frequency }}</small>
+        </article>
+      </div>
+    </div>
+
+    <div
+        v-if="saveMessage"
+        class="save-message"
+        :class="{ success: isSaveSuccess }"
+    >
+      {{ saveMessage }}
+    </div>
+
+    <div class="buttons-row">
+      <button
+          class="save-route-btn"
+          type="button"
+          @click="saveRoute"
+          :disabled="isSaving"
+      >
+        <span v-if="!isSaving">{{ $t('routeResults.saveRoute') }}</span>
+        <span v-else>{{ $t('routeResults.saving') }}</span>
+      </button>
+
+      <button @click="openInGoogleMaps" class="google-maps-btn">
+        {{ $t('routeResults.openInGoogleMaps') }}
+      </button>
+    </div>
+  </div>
+</template>
+
+
+<style scoped>
+.route-results {
+  width: 100%;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  max-height: 640px;
+  overflow-y: auto;
+}
+
+.results-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.results-header h2 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+  margin: 0;
+}
+
+.address-card {
+  background: #f8f8f8;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.routes-summary {
+  background: #f7fbef;
+  border: 1px solid #dbeab7;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.routes-summary h3 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #5c7a3a;
+}
+
+.routes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.route-chip {
+  background: white;
+  border: 1px solid #dbeab7;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #333;
+}
+
+.route-chip strong {
+  color: #2e7d32;
+}
+
+.route-chip span,
+.route-chip small {
+  color: #666;
+}
+
+.address-item {
+  margin-bottom: 12px;
+}
+
+.address-item:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.marker {
+  background: #8bc34a;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.destination .marker {
+  background: #e53935;
+}
+
+.label .text {
+  font-weight: 600;
+  color: #5c7a3a;
+  font-size: 14px;
+}
+
+.address-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 8px;
+}
+
+.address-content p {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+  color: #333;
+  line-height: 1.4;
+}
+
+.arrow-separator {
+  text-align: center;
+  font-size: 24px;
+  color: #8bc34a;
+  margin: 8px 0;
+}
+
+
+.save-message {
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-weight: 600;
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+  animation: slideIn 0.3s ease;
+}
+
+.save-message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.buttons-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.save-route-btn {
+  flex: 1;
+  min-width: 160px;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: none;
+  background: #000;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .2);
+  transition: all 0.3s ease;
+}
+
+.save-route-btn:hover:not(:disabled) {
+  background: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, .3);
+}
+
+.save-route-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.google-maps-btn {
+  flex: 1;
+  min-width: 160px;
+  padding: 12px 16px;
+  background: #4285F4;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(66, 133, 244, 0.3);
+}
+
+.google-maps-btn:hover {
+  background: #3367D6;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(66, 133, 244, 0.4);
+}
+
+.route-results::-webkit-scrollbar {
+  width: 8px;
+}
+
+.route-results::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.route-results::-webkit-scrollbar-thumb {
+  background: #8bc34a;
+  border-radius: 10px;
+}
+
+.route-results::-webkit-scrollbar-thumb:hover {
+  background: #7cb342;
+}
+
+@media (max-width: 600px) {
+  .buttons-row {
+    flex-direction: column;
+  }
+
+  .save-route-btn,
+  .google-maps-btn {
+    width: 100%;
+    min-width: unset;
+  }
+}
+</style>
