@@ -30,102 +30,30 @@ function getCurrentUserId() {
 
 export const useTravelHistoryStore = defineStore('travelHistory', {
     state: () => ({
-        /**
-         * Predefined demo trips for demonstration purposes.
-         * These trips cannot be deleted by users and serve as examples.
-         * @type {Array<Trip>}
-         */
-        demoTrips: [
-            {
-                id: 'demo-1',
-                origin: 'UPC - San Miguel Campus',
-                destination: 'UPC - San Isidro Campus',
-                timestamp: new Date('2024-11-20T14:30:00').toISOString(),
-                steps: [
-                    { type: 'walk', name: 'On foot', mode: 'walking' },
-                    { type: 'stop', name: 'Rafael Escardó Stop', mode: 'stop' },
-                    { type: 'bus', name: 'Santa María', busNumber: 'OM22', mode: 'transit' },
-                    { type: 'stop', name: 'Cádiz', mode: 'stop' },
-                    { type: 'walk', name: 'On foot', mode: 'walking' },
-                ],
-                duration: '45 min',
-                distance: '12.5 km'
-            },
-            {
-                id: 'demo-2',
-                origin: 'UPC - San Isidro Campus',
-                destination: 'UPC - Monterrico Campus',
-                timestamp: new Date('2024-11-19T09:15:00').toISOString(),
-                steps: [
-                    { type: 'walk', name: 'On foot', mode: 'walking' },
-                    { type: 'stop', name: 'Cádiz', mode: 'stop' },
-                    { type: 'bus', name: 'San Ignacio', busNumber: '1272', mode: 'transit' },
-                    { type: 'stop', name: 'La Encalada', mode: 'stop' },
-                    { type: 'walk', name: 'On foot', mode: 'walking' },
-                ],
-                duration: '38 min',
-                distance: '10.2 km'
-            }
-        ],
-
-        /**
-         * Array of user-created trips loaded from localStorage.
-         * Each trip contains id, origin, destination, steps, timestamp, duration, and distance.
-         * @type {Array<Trip>}
-         */
-        userTrips: JSON.parse(localStorage.getItem('travelHistory') || '[]'),
+        userTrips: [],
     }),
     getters: {
-        /**
-         * Returns all trips (user trips + demo trips combined).
-         * User trips appear first, followed by demo trips.
-         * @param {Object} state - The store state
-         * @returns {Array<Trip>} Complete list of all trips
-         */
-        getAllTrips: (state) => {
-            return [...state.userTrips, ...state.demoTrips]
-        },
-
-        /**
-         * Returns the 10 most recent trips from the combined list.
-         * @param {Object} state - The store state
-         * @returns {Array<Trip>} Array of up to 10 recent trips
-         */
-        recentTrips: (state) => {
-            const allTrips = [...state.userTrips, ...state.demoTrips]
-            return allTrips.slice(0, 10)
-        },
-
-        /**
-         * Returns all trips that occurred on a specific date.
-         * @param {Object} state - The store state
-         * @returns {function(string|Date): Array<Trip>} Function that takes a date and returns matching trips
-         */
+        getAllTrips: (state) => state.userTrips,
+        recentTrips: (state) => state.userTrips.slice(0, 10),
         tripsByDate: (state) => (date) => {
-            const allTrips = [...state.userTrips, ...state.demoTrips]
-            return allTrips.filter(trip => {
-                const tripDate = new Date(trip.timestamp).toDateString()
-                return tripDate === new Date(date).toDateString()
+            return state.userTrips.filter(trip => {
+                return new Date(trip.timestamp).toDateString() === new Date(date).toDateString()
             })
         }
     },
     actions: {
         async fetchTrips(userId = getCurrentUserId()) {
-            // if (!userId) return this.getAllTrips
-            //
-            // try {
-            //     const response = await api.http.get(`/users/${userId}/trips`)
-            //     const resources = Array.isArray(response.data) ? response.data : []
-            //     this.userTrips = resources.map(normalizeTripResource)
-            //     this.saveToLocalStorage()
-            //     return this.getAllTrips
-            // } catch (error) {
-            //     console.warn('No se pudo sincronizar el historial de viajes:', error?.response?.data || error.message)
-            //     return this.getAllTrips
-            // }
-            return this.getAllTrips
-        },
+            if (!userId) return this.userTrips
 
+            try {
+                const response = await api.http.get(`/users/${userId}/trips`)
+                const resources = Array.isArray(response.data) ? response.data : []
+                this.userTrips = resources.map(normalizeTripResource)
+            } catch (error) {
+                console.warn('⚠️ No se pudo sincronizar historial:', error?.response?.status, error?.response?.data || error.message)
+            }
+            return this.userTrips
+        },
         /**
          * Adds a new trip to the user's travel history.
          * Automatically assigns an ID (timestamp) and current timestamp, then persists to localStorage.
@@ -140,83 +68,30 @@ export const useTravelHistoryStore = defineStore('travelHistory', {
          */
         async addTrip(tripData) {
             const userId = tripData.userId ?? getCurrentUserId()
-            // const body = {
-            //     RouteId: tripData.routeId ?? tripData.routeData?.id ?? tripData.routeData?.Id ?? null,
-            //     Origin: tripData.origin,
-            //     Destination: tripData.destination,
-            //     StartedAt: tripData.startedAt ?? tripData.timestamp ?? new Date().toISOString(),
-            //     EndedAt: tripData.endedAt ?? null,
-            //     Notes: tripData.notes ?? ''
-            // }
-            //
-            // try {
-            //     if (userId) {
-            //         const response = await api.http.post(`/users/${userId}/trips`, body)
-            //         const createdTrip = normalizeTripResource({
-            //             ...response.data,
-            //             steps: tripData.steps || response.data?.steps || [],
-            //             duration: tripData.duration || null,
-            //             distance: tripData.distance || null
-            //         })
-            //
-            //         this.userTrips.unshift(createdTrip)
-            //         this.saveToLocalStorage()
-            //         return createdTrip
-            //     }
-            //
-            //     const fallbackTrip = normalizeTripResource({
-            //         id: Date.now(),
-            //         userId,
-            //         routeId: body.RouteId,
-            //         Origin: body.Origin,
-            //         Destination: body.Destination,
-            //         StartedAt: body.StartedAt,
-            //         EndedAt: body.EndedAt,
-            //         Notes: body.Notes,
-            //         steps: tripData.steps || [],
-            //         duration: tripData.duration || null,
-            //         distance: tripData.distance || null
-            //     })
-            //     this.userTrips.unshift(fallbackTrip)
-            //     this.saveToLocalStorage()
-            //     return fallbackTrip
-            // } catch (error) {
-            //     console.warn('No se pudo guardar el viaje en el backend, usando fallback local:', error?.response?.data || error.message)
-            //     const fallbackTrip = normalizeTripResource({
-            //         id: Date.now(),
-            //         userId,
-            //         routeId: body.RouteId,
-            //         Origin: body.Origin,
-            //         Destination: body.Destination,
-            //         StartedAt: body.StartedAt,
-            //         EndedAt: body.EndedAt,
-            //         Notes: body.Notes,
-            //         steps: tripData.steps || [],
-            //         duration: tripData.duration || null,
-            //         distance: tripData.distance || null
-            //     })
-            //
-            //     this.userTrips.unshift(fallbackTrip)
-            //     this.saveToLocalStorage()
-            //     return fallbackTrip
-            // }
-
-            const localTrip = normalizeTripResource({
-                id: Date.now(),
-                userId,
-                routeId: tripData.routeId ?? tripData.routeData?.id ?? tripData.routeData?.Id ?? null,
+            const body = {
+                RouteId: tripData.routeId ?? tripData.routeData?.id ?? tripData.routeData?.Id ?? null,
                 Origin: tripData.origin,
                 Destination: tripData.destination,
                 StartedAt: tripData.startedAt ?? tripData.timestamp ?? new Date().toISOString(),
                 EndedAt: tripData.endedAt ?? null,
-                Notes: tripData.notes ?? '',
-                steps: tripData.steps || [],
-                duration: tripData.duration || null,
-                distance: tripData.distance || null
-            })
-            this.userTrips.unshift(localTrip)
-            this.saveToLocalStorage()
-            return localTrip
+                Notes: tripData.notes ?? ''
+            }
+
+            try {
+                if (userId) {
+                    const response = await api.http.post(`/users/${userId}/trips`, body)
+                    const createdTrip = normalizeTripResource({
+                        ...response.data,
+                        steps: tripData.steps || [],
+                        duration: tripData.duration || null,
+                        distance: tripData.distance || null
+                    })
+                    this.userTrips.unshift(createdTrip)
+                    return createdTrip
+                }
+            } catch (error) {
+                console.warn('⚠️ Error guardando viaje:', error?.response?.status, error?.response?.data || error.message)
+            }
         },
 
         /**
@@ -227,12 +102,6 @@ export const useTravelHistoryStore = defineStore('travelHistory', {
          * @returns {void}
          */
         async removeTrip(tripId) {
-            // Prevent deletion of demo trips
-            if (typeof tripId === 'string' && tripId.startsWith('demo-')) {
-                alert('No puedes eliminar las rutas de ejemplo')
-                return
-            }
-
             const userId = getCurrentUserId()
 
             try {
@@ -240,10 +109,9 @@ export const useTravelHistoryStore = defineStore('travelHistory', {
                     await api.http.delete(`/users/${userId}/trips/${tripId}`)
                 }
             } catch (error) {
-                console.warn('No se pudo eliminar el viaje en el backend, eliminando localmente:', error?.response?.data || error.message)
+                console.warn('⚠️ Error eliminando viaje:', error?.response?.data || error.message)
             } finally {
                 this.userTrips = this.userTrips.filter(trip => trip.id !== tripId)
-                this.saveToLocalStorage()
             }
         },
 
@@ -256,7 +124,6 @@ export const useTravelHistoryStore = defineStore('travelHistory', {
             const trips = [...this.userTrips]
             await Promise.all(trips.map(trip => this.removeTrip(trip.id)))
             this.userTrips = []
-            this.saveToLocalStorage()
         },
 
         /**
@@ -266,7 +133,6 @@ export const useTravelHistoryStore = defineStore('travelHistory', {
          */
         clearAllIncludingDemo() {
             this.userTrips = []
-            this.demoTrips = []
             this.saveToLocalStorage()
         },
 

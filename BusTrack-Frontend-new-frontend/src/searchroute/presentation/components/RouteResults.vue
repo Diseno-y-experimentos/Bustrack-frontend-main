@@ -1,7 +1,7 @@
 <script setup>
 import { useSavedRoutesStore } from '@/stores/useSavedRoutesStore'
 import { useNotificationsStore } from '@/stores/useNotificationsStore'
-// import { useTravelHistoryStore } from '@/stores/useTravelHistoryStore'
+import { useTravelHistoryStore } from '@/stores/useTravelHistoryStore'
 import {SearchRouteApi} from '@/searchroute/infrastructure/route-api.js'
 import { useI18n } from 'vue-i18n'
 import { ref, onMounted, computed } from 'vue'
@@ -10,7 +10,7 @@ import {useRouter} from "vue-router";
 const { t } = useI18n()
 const savedRoutesStore = useSavedRoutesStore()
 const notificationsStore = useNotificationsStore()
-// const travelHistoryStore = useTravelHistoryStore()
+const travelHistoryStore = useTravelHistoryStore()
 // const availableRoutes = ref([])
 // const isLoadingRoutes = ref(false)
 // const selectedCompanyId = ref(1)
@@ -126,31 +126,15 @@ const openInGoogleMaps = () => {
   window.open(url, '_blank')
 }
 
-// onMounted(async () => {
-//   // Agregar al historial de viajes automáticamente
-//   // void travelHistoryStore.addTrip({
-//   //   origin: props.origin,
-//   //   destination: props.destination,
-//   //   routeId: getRouteId(),
-//   //   routeData: props.routeData,
-//   //   steps: extractStepsFromRouteData(props.routeData),
-//   // })
-//   try {
-//     isLoadingCompanies.value = true
-//     // Llamada a tu API para obtener compañías
-//     const response = await routeApi.getCompanies()
-//     availableCompanies.value = response.data
-//
-//     // Si hay compañías, selecciona la primera por defecto
-//     if (availableCompanies.value.length > 0) {
-//       selectedCompanyId.value = availableCompanies.value[0].id
-//     }
-//   } catch (error) {
-//     console.error('Error al cargar compañías:', error)
-//   } finally {
-//     isLoadingCompanies.value = false
-//   }
-// })
+onMounted(async () => {
+  await travelHistoryStore.addTrip({
+    origin: props.origin,
+    destination: props.destination,
+    routeId: getRouteId(),
+    routeData: props.routeData,
+    steps: extractStepsFromRouteData(props.routeData),
+  })
+})
 
 const extractStepsFromRouteData = (routeData) => {
   const waypoints = routeData?.Waypoints ?? routeData?.waypoints ?? []

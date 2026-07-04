@@ -442,6 +442,7 @@
   },
   "fleet": {
     "title": "Administración de Flota",
+    "loading": "Cargando flota...",
     "stats": {
       "total": "Total de buses",
       "active": "Activos",
@@ -490,6 +491,9 @@
       "busUpdated": "Bus actualizado exitosamente",
       "busDeleted": "Bus eliminado exitosamente",
       "confirmDelete": "¿Seguro que deseas eliminar este bus?"
+    },
+    "errors": {
+      "saveFailed": "Error al guardar la flota"
     }
   },
   "monitoring": {

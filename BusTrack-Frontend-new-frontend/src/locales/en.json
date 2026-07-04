@@ -441,6 +441,7 @@
   },
   "fleet": {
     "title": "Fleet Management",
+    "loading": "Loading fleet...",
     "stats": {
       "total": "Total buses",
       "active": "Active",
@@ -489,6 +490,9 @@
       "busUpdated": "Bus updated successfully",
       "busDeleted": "Bus deleted successfully",
       "confirmDelete": "Are you sure you want to delete this bus?"
+    },
+    "errors": {
+      "saveFailed": "Failed to save fleet"
     }
   },
   "alerts": {
