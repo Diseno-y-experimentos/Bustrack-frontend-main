@@ -1,9 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import useRouteStore from '@/searchroute/application/route.store.js'
 
 const { t } = useI18n()
+const route = useRoute()
 const emit = defineEmits(['search'])
 const routeStore = useRouteStore()
 
@@ -12,6 +14,39 @@ const destination = ref('')
 const isSearching = ref(false)
 const searchError = ref('')
 
+onMounted(() => {
+  // Verificar si viene de repetir un viaje
+  const repeatData = sessionStorage.getItem('repeatTrip')
+
+  if (repeatData) {
+    const data = JSON.parse(repeatData)
+    origin.value = data.origin
+    destination.value = data.destination
+
+    // Auto-buscar si viene de historial
+    if (data.autoSearch) {
+      setTimeout(() => {
+        handleSearch()
+      }, 500)
+    }
+
+    // Limpiar sessionStorage
+    sessionStorage.removeItem('repeatTrip')
+  } else {
+    // Si viene por query params también
+    const queryOrigin = route.query.origin
+    const queryDest = route.query.destination
+
+    if (queryOrigin) origin.value = String(queryOrigin)
+    if (queryDest) destination.value = String(queryDest)
+
+    if (route.query.autoSearch === 'true') {
+      setTimeout(() => {
+        handleSearch()
+      }, 500)
+    }
+  }
+})
 
 const handleSearch = async () => {
   const nextOrigin = origin.value.trim()

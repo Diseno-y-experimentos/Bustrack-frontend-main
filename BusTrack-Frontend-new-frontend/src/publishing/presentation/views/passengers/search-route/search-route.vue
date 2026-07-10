@@ -1,8 +1,10 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 
 const { t } = useI18n()
+const route = useRoute()
 
 const origin = ref('')
 const destination = ref('')
@@ -40,6 +42,40 @@ const availableRoutes = [
     buses: ['Bus 412']
   }
 ]
+
+onMounted(() => {
+  // Verificar si viene de repetir un viaje
+  const repeatData = sessionStorage.getItem('repeatTrip')
+
+  if (repeatData) {
+    const data = JSON.parse(repeatData)
+    origin.value = data.origin
+    destination.value = data.destination
+
+    // Auto-buscar si viene de historial
+    if (data.autoSearch) {
+      setTimeout(() => {
+        searchRoutes()
+      }, 500)
+    }
+
+    // Limpiar sessionStorage
+    sessionStorage.removeItem('repeatTrip')
+  } else {
+    // Si viene por query params también
+    const queryOrigin = route.query.origin
+    const queryDest = route.query.destination
+
+    if (queryOrigin) origin.value = String(queryOrigin)
+    if (queryDest) destination.value = String(queryDest)
+
+    if (route.query.autoSearch === 'true') {
+      setTimeout(() => {
+        searchRoutes()
+      }, 500)
+    }
+  }
+})
 
 const searchRoutes = () => {
   if (!origin.value.trim() || !destination.value.trim()) {

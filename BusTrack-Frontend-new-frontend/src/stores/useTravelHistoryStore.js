@@ -72,7 +72,7 @@ export const useTravelHistoryStore = defineStore('travelHistory', {
                 RouteId: tripData.routeId ?? tripData.routeData?.id ?? tripData.routeData?.Id ?? null,
                 Origin: tripData.origin,
                 Destination: tripData.destination,
-                StartedAt: tripData.startedAt ?? tripData.timestamp ?? new Date().toISOString(),
+                StartedAt: tripData.startedAt ?? tripData.timestamp ?? new Date(),
                 EndedAt: tripData.endedAt ?? null,
                 Notes: tripData.notes ?? ''
             }

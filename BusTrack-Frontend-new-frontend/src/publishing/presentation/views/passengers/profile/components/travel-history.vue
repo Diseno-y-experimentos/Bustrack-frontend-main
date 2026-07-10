@@ -74,9 +74,15 @@ const formatDate = (timestamp) => {
 }
 
 const viewRouteAgain = (trip) => {
+  sessionStorage.setItem('repeatTrip', JSON.stringify({
+    origin: trip.origin,
+    destination: trip.destination,
+    autoSearch: true
+  }))
+
   router.push({
     path: '/search-route',
-    query: { origin: trip.origin, destination: trip.destination }
+    query: { origin: trip.origin, destination: trip.destination, autoSearch: true },
   })
 }
 

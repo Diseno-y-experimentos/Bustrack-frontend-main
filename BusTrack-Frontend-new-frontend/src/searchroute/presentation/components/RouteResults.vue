@@ -4,18 +4,13 @@ import { useNotificationsStore } from '@/stores/useNotificationsStore'
 import { useTravelHistoryStore } from '@/stores/useTravelHistoryStore'
 import {SearchRouteApi} from '@/searchroute/infrastructure/route-api.js'
 import { useI18n } from 'vue-i18n'
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import {useRouter} from "vue-router";
 
 const { t } = useI18n()
 const savedRoutesStore = useSavedRoutesStore()
 const notificationsStore = useNotificationsStore()
 const travelHistoryStore = useTravelHistoryStore()
-// const availableRoutes = ref([])
-// const isLoadingRoutes = ref(false)
-// const selectedCompanyId = ref(1)
-// const availableCompanies = ref([])
-// const isLoadingCompanies = ref(false)
 
 const routeApi = new SearchRouteApi()
 
@@ -53,6 +48,16 @@ const saveRoute = async () => {
     saveMessage.value = '✓ Ruta creada en la base de datos'
     emit('save-route', response.data)
 
+    // ✅ Aquí guarda en Trips DESPUÉS de guardar la ruta
+    await travelHistoryStore.addTrip({
+      origin: props.origin,
+      destination: props.destination,
+      routeId: getRouteId(),
+      routeData: props.routeData,
+      steps: extractStepsFromRouteData(props.routeData),
+      startedAt: new Date(),
+    })
+
     // Notificación al crear la ruta (aislada en su propio try)
     try {
       await notificationsStore.addNotification({
@@ -73,39 +78,6 @@ const saveRoute = async () => {
       saveMessage.value = ''
     }, 3000)
   }
-  // const routeToSave = {
-  //   origin: props.origin,
-  //   destination: props.destination,
-  //   routeId: getRouteId(),
-  //   routeData: props.routeData
-  // }
-  //
-  // const success = await savedRoutesStore.addRoute(routeToSave)
-  //
-  // if (success) {
-  //   await notificationsStore.addNotification({
-  //     type: 'success',
-  //     message: `Ruta guardada: ${props.origin} → ${props.destination}`,
-  //     priority: 'low',
-  //     icon: '⭐'
-  //   })
-  //
-  //   saveMessage.value = '✓ Ruta guardada en favoritos'
-  //   emit('save-route', routeToSave)
-  // } else {
-  //   saveMessage.value = 'Esta ruta ya está en favoritos'
-  //   notificationsStore.addNotification({
-  //     type: 'info',
-  //     message: `La ruta ${props.origin} → ${props.destination} ya está guardada`,
-  //     priority: 'low',
-  //     icon: 'ℹ️'
-  //   })
-  // }
-  //
-  // setTimeout(() => {
-  //   isSaving.value = false
-  //   saveMessage.value = ''
-  // }, 3000)
 }
 
 const extractWaypointsForBackend = (routeData) => {
@@ -125,16 +97,6 @@ const openInGoogleMaps = () => {
   const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=transit`
   window.open(url, '_blank')
 }
-
-onMounted(async () => {
-  await travelHistoryStore.addTrip({
-    origin: props.origin,
-    destination: props.destination,
-    routeId: getRouteId(),
-    routeData: props.routeData,
-    steps: extractStepsFromRouteData(props.routeData),
-  })
-})
 
 const extractStepsFromRouteData = (routeData) => {
   const waypoints = routeData?.Waypoints ?? routeData?.waypoints ?? []
