@@ -51,7 +51,6 @@ function validate () {
   return !errors.emailOrUsername && !errors.password
 }
 
-
 const canSubmit = computed(() => form.emailOrUsername && form.password)
 
 async function onSubmit () {
@@ -65,9 +64,7 @@ async function onSubmit () {
       const company = await userStore.loginCompany(form.emailOrUsername, form.password)
       console.log('✅ Login empresa exitoso, redirigiendo...')
       emit('submit', company)
-      // Limpiar alertas al iniciar sesión para empezar con tablero vacío
-        await alertsStore.clearAll()
-      // Redirigir a Flota tras login de empresa (antes: monitoring)
+      await alertsStore.clearAll()
       router.push({ name: 'company-fleet' })
     }
     // CASO PASAJERO
@@ -92,12 +89,8 @@ async function onSubmit () {
     }
   } catch (error) {
     console.log('❌ Error en login:', error.message)
-    errors.general = error.message || 'Error al iniciar sesión'
+    errors.general = error.message || t('errors.unexpected')
   }
-}
-
-function onGoogleLogin () {
-  console.log('Google login clicked')
 }
 </script>
 
@@ -110,14 +103,9 @@ function onGoogleLogin () {
       ⚠️ {{ errors.general }}
     </div>
 
-    <!-- Botón Google -->
-    <button type="button" class="google-btn" @click="onGoogleLogin">
-      {{ t('auth.login.continueWithGoogle') }}
-    </button>
-
     <!-- Email o Username -->
     <label class="field">
-      <span class="label">{{ t('auth.login.username') }}</span>
+      <span class="label">{{ t('auth.login.emailOrUsername') }}</span>
       <input
           class="input"
           type="text"
@@ -149,8 +137,8 @@ function onGoogleLogin () {
     </label>
 
     <!-- Submit Button -->
-    <button class="btn" type="submit" :disabled="!canSubmit">
-      {{ t('auth.login.register')  }}
+    <button class="btn" type="submit" :disabled="!canSubmit || loading">
+      {{ loading ? t('auth.login.continuing') : t('auth.login.submit') }}
     </button>
 
     <!-- Link a Register -->
@@ -198,24 +186,6 @@ function onGoogleLogin () {
   75% { transform: translateX(5px); }
 }
 
-.google-btn {
-  width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #000;
-  border-radius: 8px;
-  background: #fff;
-  color: #000;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-bottom: 8px;
-}
-
-.google-btn:hover {
-  background: #f5f5f5;
-}
-
 .field {
   display: flex;
   flex-direction: column;
@@ -257,18 +227,18 @@ function onGoogleLogin () {
   font-weight: 600;
   font-size: 16px;
   color: #fff;
-  background: #5a5a5a;
+  background: #000;
   cursor: pointer;
   margin-top: 8px;
-  transition: opacity 0.2s;
+  transition: background-color 0.2s;
 }
 
 .btn:hover:not(:disabled) {
-  opacity: 0.9;
+  background: #333;
 }
 
 .btn:disabled {
-  opacity: 0.6;
+  background: #ccc;
   cursor: not-allowed;
 }
 

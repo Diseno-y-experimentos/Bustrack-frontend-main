@@ -364,12 +364,14 @@
       "title": "Create your account",
       "companyName": "Company name",
       "companyNamePlaceholder": "Enter the company name",
-      "ruc": "Tax ID",
-      "rucPlaceholder": "Enter the tax ID",
+      "ruc": "RUC",
+      "rucPlaceholder": "Enter the RUC",
       "corporateEmail": "Corporate email",
       "corporateEmailPlaceholder": "Enter corporate email",
       "address": "Address",
       "addressPlaceholder": "Enter the address",
+      "phone": "Phone",
+      "phonePlaceholder": "Enter phone number",
       "password": "Password",
       "passwordPlaceholder": "Enter your password",
       "confirmPassword": "Confirm password",
@@ -379,7 +381,9 @@
       "fleetSizePlaceholder": "Enter number of buses",
       "submit": "Create Account",
       "alreadyHaveAccount": "Already have an account?",
-      "loginLink": "Sign In"
+      "loginLink": "Sign In",
+      "success": "Registration successful! You can now log in.",
+      "loading": "Registering..."
     }
   },
   "companyNav": {

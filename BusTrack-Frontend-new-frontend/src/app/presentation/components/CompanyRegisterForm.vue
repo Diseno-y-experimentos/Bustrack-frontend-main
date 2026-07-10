@@ -26,41 +26,41 @@ const validateForm = () => {
   errors.value = {}
 
   if (!form.value.companyName.trim()) {
-    errors.value.companyName = t('companyRegister.register.errors.companyNameRequired') || 'El nombre de la empresa es requerido'
+    errors.value.companyName = t('companyRegister.register.errors.companyNameRequired') || 'Company name is required'
   }
 
   if (!form.value.ruc.trim()) {
-    errors.value.ruc = t('companyRegister.register.errors.rucRequired') || 'El RUC es requerido'
+    errors.value.ruc = t('companyRegister.register.errors.rucRequired') || 'RUC is required'
   }
 
   if (!form.value.email.trim()) {
-    errors.value.email = t('companyRegister.register.errors.emailRequired') || 'El correo es requerido'
+    errors.value.email = t('companyRegister.register.errors.emailRequired') || 'Email is required'
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.email)) {
-    errors.value.email = t('companyRegister.register.errors.emailInvalid') || 'Correo inválido'
+    errors.value.email = t('companyRegister.register.errors.emailInvalid') || 'Invalid email'
   }
 
   if (!form.value.address.trim()) {
-    errors.value.address = t('companyRegister.register.errors.addressRequired') || 'La dirección es requerida'
+    errors.value.address = t('companyRegister.register.errors.addressRequired') || 'Address is required'
   }
 
   if (!form.value.phone.trim()) {
-    errors.value.phone = t('companyRegister.register.errors.phoneRequired') || 'El teléfono es requerido'
+    errors.value.phone = t('companyRegister.register.errors.phoneRequired') || 'Phone is required'
   }
 
   if (!form.value.password) {
-    errors.value.password = t('companyRegister.register.errors.passwordRequired') || 'La contraseña es requerida'
+    errors.value.password = t('companyRegister.register.errors.passwordRequired') || 'Password is required'
   } else if (form.value.password.length < 6) {
-    errors.value.password = t('companyRegister.register.errors.passwordTooShort') || 'La contraseña debe tener al menos 6 caracteres'
+    errors.value.password = t('companyRegister.register.errors.passwordTooShort') || 'Password must be at least 6 characters'
   }
 
   if (!form.value.confirmPassword) {
-    errors.value.confirmPassword = t('companyRegister.register.errors.confirmPasswordRequired') || 'Debe confirmar la contraseña'
+    errors.value.confirmPassword = t('companyRegister.register.errors.confirmPasswordRequired') || 'Confirm your password'
   } else if (form.value.password !== form.value.confirmPassword) {
-    errors.value.confirmPassword = t('companyRegister.register.passwordMismatch') || 'Las contraseñas no coinciden'
+    errors.value.confirmPassword = t('companyRegister.register.passwordMismatch') || 'Passwords do not match'
   }
 
   if (!form.value.fleetSize) {
-    errors.value.fleetSize = t('companyRegister.register.errors.fleetSizeRequired') || 'El tamaño de la flota es requerido'
+    errors.value.fleetSize = t('companyRegister.register.errors.fleetSizeRequired') || 'Fleet size is required'
   }
 
   return Object.keys(errors.value).length === 0
@@ -84,8 +84,7 @@ const handleSubmit = async () => {
       fleetSize: form.value.fleetSize
     })
 
-    alert(t('companyRegister.register.success') || '¡Registro exitoso! Ahora puedes iniciar sesión.')
-    // Volver al flujo: después del registro ir al login; al iniciar sesión se redirige a Flota
+    alert(t('companyRegister.register.success') || 'Registration successful! You can now log in.')
     router.push('/company/login')
   } catch (error) {
     alert(error.message)
@@ -150,13 +149,13 @@ const goToLogin = () => {
 
     <!-- Teléfono -->
     <div class="form-group">
-      <label class="form-label">{{ t('companyRegister.register.phone') || 'Teléfono' }}</label>
+      <label class="form-label">{{ t('companyRegister.register.phone') || 'Phone' }}</label>
       <input
           type="text"
           v-model="form.phone"
           class="form-input"
           :class="{ 'input-error': errors.phone }"
-          :placeholder="t('companyRegister.register.phonePlaceholder') || '+51 987 654 321'"
+          :placeholder="t('companyRegister.register.phonePlaceholder')"
       />
       <span v-if="errors.phone" class="error-message">
         {{ errors.phone }}
@@ -226,7 +225,7 @@ const goToLogin = () => {
 
     <!-- Botón Submit -->
     <button type="submit" class="btn-submit" :disabled="loading">
-      {{ loading ? t('companyRegister.register.loading') : t('companyRegister.register.submit') }}
+      {{ loading ? t('companyRegister.register.loading') || 'Loading...' : t('companyRegister.register.submit') }}
     </button>
 
     <!-- Link a Login -->
